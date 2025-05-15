@@ -16,15 +16,6 @@ export default function Navbar() {
   const { user, logout, selectedConsultant } = useAuth()
   const navigate = useNavigate()
   
-  // Diyet planı sayfasına geçiş için kontrol
-  const handleDietPlanClick = (e) => {
-    if (!selectedConsultant) {
-      e.preventDefault(); // Varsayılan link davranışını engelle
-      message.warning('Lütfen önce bir danışan seçin!');
-      navigate('/dashboard'); // Dashboard sayfasına yönlendir
-    }
-  };
-
   // Bileşenin JSX yapısını döndürme
   return (
     // Header bileşeni - üst menü barı olarak kullanılır
@@ -56,7 +47,14 @@ export default function Navbar() {
             <Link to="/dashboard">Danışman Bilgileri</Link>
           </Menu.Item>
           <Menu.Item key="dietplan">
-            <Link to="/diet-plan" onClick={handleDietPlanClick}>Diyet Planı</Link>
+            <Link to="/diet-plan" onClick={(e) => {
+              if (!selectedConsultant) {
+                e.preventDefault();
+                message.warning('Lütfen önce bir danışan seçin!');
+                navigate('/dashboard');
+                return;
+              }
+            }}>Diyet Planı</Link>
           </Menu.Item>
         </Menu>
       </div>

@@ -26,151 +26,13 @@ export default function DietPlan() {
   const [consultantVerified, setConsultantVerified] = useState(false)
   const [verifying, setVerifying] = useState(true)
   
-  // URL'den danışan bilgilerini al, yoksa Context'ten al
-  const consultantId = queryParams.get('id') || (selectedConsultant ? selectedConsultant.id : null)
-  const consultantName = queryParams.get('name') || (selectedConsultant ? selectedConsultant.name : null)
-  const consultantEmail = queryParams.get('email') || (selectedConsultant ? selectedConsultant.email : null)
-  const dailyCalories = queryParams.get('dailyCalories') || (selectedConsultant ? selectedConsultant.dailyCalories : null)
+  // Danışan bilgilerini al
+  const consultantId = selectedConsultant ? selectedConsultant.id : queryParams.get('id')
+  const consultantName = selectedConsultant ? selectedConsultant.name : queryParams.get('name')
+  const consultantEmail = selectedConsultant ? selectedConsultant.email : queryParams.get('email')
+  const dailyCalories = selectedConsultant ? selectedConsultant.dailyCalories : queryParams.get('dailyCalories')
   
-  // Sayfa yüklendiğinde danışanın Google Sheets'te hala var olup olmadığını kontrol et
-  useEffect(() => {
-    async function verifyConsultant() {
-      // Temel danışan bilgileri kontrolü
-      const hasBasicInfo = Boolean(consultantId) && Boolean(consultantName) && Boolean(consultantEmail);
-      
-      if (!hasBasicInfo) {
-        // Temel bilgiler eksikse doğrulama başarısız
-        setConsultantVerified(false);
-        setVerifying(false);
-        return;
-      }
-      
-      try {
-        // Google Sheets'ten danışanları getir
-        const response = await axios.get(CONSULTANTS_API_URL);
-        
-        if (response.data && Array.isArray(response.data)) {
-          // E-posta adresine göre danışanı kontrol et
-          const consultantExists = response.data.some(consultant => 
-            consultant.email && consultant.email.toLowerCase() === consultantEmail.toLowerCase()
-          );
-          
-          setConsultantVerified(consultantExists);
-          
-          // Eğer danışan Google Sheets'te yoksa Context'teki seçili danışanı temizle
-          if (!consultantExists && selectedConsultant) {
-            clearSelectedConsultant();
-            message.warning('Seçilen danışan artık mevcut değil.');
-          }
-        } else {
-          // API'den veri gelmezse veya beklenmeyen format ise doğrulama başarısız
-          setConsultantVerified(false);
-        }
-      } catch (error) {
-        console.error('Danışan doğrulama hatası:', error);
-        setConsultantVerified(false);
-      } finally {
-        setVerifying(false);
-      }
-    }
-    
-    verifyConsultant();
-  }, [consultantId, consultantName, consultantEmail, selectedConsultant, clearSelectedConsultant]);
-  
-  // Danışan seçili olup olmadığını kontrol et - hem ID hem de doğrulama sonucunu kullan
-  const hasSelectedConsultant = Boolean(consultantId) && Boolean(consultantName) && consultantVerified
-  
-  // Render edilecek içerik için ana koşul
-  const renderConsultantWarning = () => (
-    <Card style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', textAlign: 'center', padding: '40px 0' }}>
-      <FireOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 24 }} />
-      <Title level={3}>Lütfen önce bir danışan seçin</Title>
-      <Text type="secondary">
-        Diyet planı oluşturmak için Danışman Bilgileri sayfasından bir danışan seçmeniz gerekmektedir.
-      </Text>
-      <div style={{ marginTop: 24 }}>
-        <Button type="primary" size="large" onClick={() => navigate('/dashboard')}>
-          Danışman Bilgileri Sayfasına Dön
-        </Button>
-      </div>
-    </Card>
-  )
-  
-  // Yükleme göstergesi
-  const renderLoading = () => (
-    <Card style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', textAlign: 'center', padding: '40px 0' }}>
-      <Spin size="large" />
-      <Title level={3} style={{ marginTop: 24 }}>Danışan bilgileri kontrol ediliyor...</Title>
-      <Text type="secondary">
-        Lütfen bekleyin, danışan bilgilerinin geçerliliği doğrulanıyor.
-      </Text>
-    </Card>
-  )
-
-  // Eğer doğrulama devam ediyorsa yükleme göster
-  if (verifying) {
-    return (
-      <Layout style={{ minHeight: '100vh' }}>
-        <Navbar />
-        <Layout>
-          <Sider width={200} style={{ background: '#001529' }}>
-            <Menu
-              mode="inline"
-              defaultSelectedKeys={['2']}
-              style={{ height: '100%', borderRight: 0 }}
-              theme="dark"
-            >
-              <Menu.Item key="1" icon={<AppstoreOutlined />}>
-                <Link to="/dashboard">Danışman Bilgileri</Link>
-              </Menu.Item>
-              <Menu.Item key="2" icon={<CalendarOutlined />}>
-                <Link to="/diet-plan">Diyet Planı</Link>
-              </Menu.Item>
-            </Menu>
-          </Sider>
-          <Layout style={{ padding: '24px', background: '#f5f5f5' }}>
-            <Content>
-              {renderLoading()}
-            </Content>
-          </Layout>
-        </Layout>
-      </Layout>
-    )
-  }
-
-  // Eğer danışan seçili değilse, tüm diğer state'leri ve efektleri atla
-  if (!hasSelectedConsultant) {
-    return (
-      <Layout style={{ minHeight: '100vh' }}>
-        <Navbar />
-        <Layout>
-          <Sider width={200} style={{ background: '#001529' }}>
-            <Menu
-              mode="inline"
-              defaultSelectedKeys={['2']}
-              style={{ height: '100%', borderRight: 0 }}
-              theme="dark"
-            >
-              <Menu.Item key="1" icon={<AppstoreOutlined />}>
-                <Link to="/dashboard">Danışman Bilgileri</Link>
-              </Menu.Item>
-              <Menu.Item key="2" icon={<CalendarOutlined />}>
-                <Link to="/diet-plan">Diyet Planı</Link>
-              </Menu.Item>
-            </Menu>
-          </Sider>
-          <Layout style={{ padding: '24px', background: '#f5f5f5' }}>
-            <Content>
-              {renderConsultantWarning()}
-            </Content>
-          </Layout>
-        </Layout>
-      </Layout>
-    )
-  }
-  
-  // Buradan sonraki kod sadece hasSelectedConsultant true olduğunda çalışacak
-  
+  // Sayfa state'leri
   const [loading, setLoading] = useState(false)
   const [meals, setMeals] = useState([])
   const [dietPlan, setDietPlan] = useState(null)
@@ -184,97 +46,120 @@ export default function DietPlan() {
   const [selectedMealType, setSelectedMealType] = useState('Kahvaltı')
   const [selectedMeals, setSelectedMeals] = useState([])
   const [searchText, setSearchText] = useState('')
+  
+  // Danışan bilgilerini kontrol et
+  const hasSelectedConsultant = Boolean(consultantId) && Boolean(consultantName);
 
-  // Bundan sonraki kısım sadece danışan seçili olduğunda çalışacak - Diyet plan içeriği
-
-  // API'den yemek verilerini çek
+  // Sayfa yüklendiğinde danışanı kontrol et
   useEffect(() => {
-    const fetchMeals = async () => {
-      setLoading(true)
-      try {
-        // SheetBest API ile veri çekmeyi deneyelim
-        const response = await axios.get(MEALS_API_URL)
-        
-        // Debug için raw verileri konsola bas
-        console.log('SheetBest Raw Data:', response.data);
-        
-        if (response.data && Array.isArray(response.data)) {
-          // SheetBest verilerini işle
-          let foodData = [];
-          
-          // SheetBest'ten gelen veriyi doğru formata dönüştür
-          response.data.forEach((item, index) => {
-            // Her bir satırdaki tüm öğün türlerini kontrol et
-            if (item.Sabah) {
-              foodData.push({
-                key: `breakfast_${index}`,
-                mealType: 'Kahvaltı',
-                name: extractFoodName(item.Sabah),
-                portion: extractPortion(item.Sabah),
-                calories: extractCalories(item.Sabah)
-              });
-            }
-            
-            if (item['Öğle']) {
-              foodData.push({
-                key: `lunch_${index}`,
-                mealType: 'Öğle Yemeği',
-                name: extractFoodName(item['Öğle']),
-                portion: extractPortion(item['Öğle']),
-                calories: extractCalories(item['Öğle'])
-              });
-            }
-            
-            if (item['Akşam']) {
-              foodData.push({
-                key: `dinner_${index}`,
-                mealType: 'Akşam Yemeği',
-                name: extractFoodName(item['Akşam']),
-                portion: extractPortion(item['Akşam']),
-                calories: extractCalories(item['Akşam'])
-              });
-            }
-            
-            if (item['Ara Öğün']) {
-              foodData.push({
-                key: `snack_${index}`,
-                mealType: 'Ara Öğün',
-                name: extractFoodName(item['Ara Öğün']),
-                portion: extractPortion(item['Ara Öğün']),
-                calories: extractCalories(item['Ara Öğün'])
-              });
-            }
-          });
-          
-          console.log('Processed Food Data:', foodData);
-          
-          // Boş satırları filtrele
-          const validFoodData = foodData.filter(food => food.name && food.name.trim() !== '');
-          
-          console.log('Valid Food Data:', validFoodData);
-          
-          if (validFoodData.length > 0) {
-            setMeals(validFoodData);
-            message.success('Yemek verileri SheetBest\'ten başarıyla yüklendi.');
-            
-            // Başarılı veriyi localStorage'a kaydet (opsiyonel, ağ bağlantısı yoksa kullanabilmek için)
-            localStorage.setItem('mealData', JSON.stringify(validFoodData));
-          } else {
-            throw new Error('SheetBest\'ten gelen veri boş veya geçersiz format');
-          }
-        } else {
-          throw new Error('API veri formatı beklendiği gibi değil');
-        }
-      } catch (error) {
-        console.error('Veri yükleme hatası:', error);
-        message.error('SheetBest bağlantısı başarısız: ' + error.message);
-      } finally {
-        setLoading(false)
-      }
+    // Eğer seçili danışan yoksa, doğrudan doğrulama bitir
+    if (!hasSelectedConsultant) {
+      setConsultantVerified(false);
+      setVerifying(false);
+      return;
     }
 
-    fetchMeals()
-  }, []) // Sadece bir kez çalışsın
+    // Danışan var, API kontrolüne gerek yok
+    setConsultantVerified(true);
+    setVerifying(false);
+    
+    // Diyet plan ve yemeklerini yükle
+    if (hasSelectedConsultant) {
+      loadDietPlanFromSheets();
+      loadAllSavedPlans();
+    }
+  }, [hasSelectedConsultant, consultantId, consultantName, consultantEmail]);
+  
+  // API'den yemek verilerini çek
+  useEffect(() => {
+    if (hasSelectedConsultant) {
+      const fetchMeals = async () => {
+        setLoading(true)
+        try {
+          // SheetBest API ile veri çekmeyi deneyelim
+          const response = await axios.get(MEALS_API_URL)
+          
+          // Debug için raw verileri konsola bas
+          console.log('SheetBest Raw Data:', response.data);
+          
+          if (response.data && Array.isArray(response.data)) {
+            // SheetBest verilerini işle
+            let foodData = [];
+            
+            // SheetBest'ten gelen veriyi doğru formata dönüştür
+            response.data.forEach((item, index) => {
+              // Her bir satırdaki tüm öğün türlerini kontrol et
+              if (item.Sabah) {
+                foodData.push({
+                  key: `breakfast_${index}`,
+                  mealType: 'Kahvaltı',
+                  name: extractFoodName(item.Sabah),
+                  portion: extractPortion(item.Sabah),
+                  calories: extractCalories(item.Sabah)
+                });
+              }
+              
+              if (item['Öğle']) {
+                foodData.push({
+                  key: `lunch_${index}`,
+                  mealType: 'Öğle Yemeği',
+                  name: extractFoodName(item['Öğle']),
+                  portion: extractPortion(item['Öğle']),
+                  calories: extractCalories(item['Öğle'])
+                });
+              }
+              
+              if (item['Akşam']) {
+                foodData.push({
+                  key: `dinner_${index}`,
+                  mealType: 'Akşam Yemeği',
+                  name: extractFoodName(item['Akşam']),
+                  portion: extractPortion(item['Akşam']),
+                  calories: extractCalories(item['Akşam'])
+                });
+              }
+              
+              if (item['Ara Öğün']) {
+                foodData.push({
+                  key: `snack_${index}`,
+                  mealType: 'Ara Öğün',
+                  name: extractFoodName(item['Ara Öğün']),
+                  portion: extractPortion(item['Ara Öğün']),
+                  calories: extractCalories(item['Ara Öğün'])
+                });
+              }
+            });
+            
+            console.log('Processed Food Data:', foodData);
+            
+            // Boş satırları filtrele
+            const validFoodData = foodData.filter(food => food.name && food.name.trim() !== '');
+            
+            console.log('Valid Food Data:', validFoodData);
+            
+            if (validFoodData.length > 0) {
+              setMeals(validFoodData);
+              message.success('Yemek verileri SheetBest\'ten başarıyla yüklendi.');
+              
+              // Başarılı veriyi localStorage'a kaydet (opsiyonel, ağ bağlantısı yoksa kullanabilmek için)
+              localStorage.setItem('mealData', JSON.stringify(validFoodData));
+            } else {
+              throw new Error('SheetBest\'ten gelen veri boş veya geçersiz format');
+            }
+          } else {
+            throw new Error('API veri formatı beklendiği gibi değil');
+          }
+        } catch (error) {
+          console.error('Veri yükleme hatası:', error);
+          message.error('SheetBest bağlantısı başarısız: ' + error.message);
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchMeals()
+    }
+  }, [hasSelectedConsultant]) // hasSelectedConsultant değiştiğinde çalışsın
 
   // SheetBest veri yapısı için yardımcı fonksiyonlar
   function extractFoodName(text) {
@@ -342,7 +227,7 @@ export default function DietPlan() {
         
         console.log('Bulunan diyet planları:', savedPlans);
         
-        // En son kaydedilen planı bul (tarihe göre sırala)
+        // En son kaydedilen planı bul 
         const savedPlan = savedPlans.length > 0 ? 
           savedPlans.sort((a, b) => new Date(b.olusturma_tarihi) - new Date(a.olusturma_tarihi))[0] : null;
         
@@ -1038,6 +923,36 @@ ${araOgun}
     }
   ];
 
+  // Render edilecek içerik için ana koşul
+  const renderConsultantWarning = () => (
+    <Card style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', textAlign: 'center', padding: '40px 0' }}>
+      <FireOutlined style={{ fontSize: 48, color: '#1890ff', marginBottom: 24 }} />
+      <Title level={3}>Lütfen önce bir danışan seçin</Title>
+      <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
+        Diyet planı oluşturmak için Danışman Bilgileri sayfasından bir danışan seçmeniz gerekmektedir.
+      </Text>
+      <Text type="danger" style={{ display: 'block', marginBottom: 24 }}>
+        Hata: Danışan bilgileri bulunamadı veya seçili danışan yok.
+      </Text>
+      <div style={{ marginTop: 24 }}>
+        <Button type="primary" size="large" onClick={() => navigate('/dashboard')}>
+          Danışman Bilgileri Sayfasına Dön
+        </Button>
+      </div>
+    </Card>
+  )
+  
+  // Yükleme göstergesi
+  const renderLoading = () => (
+    <Card style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', textAlign: 'center', padding: '40px 0' }}>
+      <Spin size="large" />
+      <Title level={3} style={{ marginTop: 24 }}>Danışan bilgileri kontrol ediliyor...</Title>
+      <Text type="secondary">
+        Lütfen bekleyin, danışan bilgilerinin geçerliliği doğrulanıyor.
+      </Text>
+    </Card>
+  )
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Navbar />
@@ -1059,190 +974,199 @@ ${araOgun}
         </Sider>
         <Layout style={{ padding: '24px', background: '#f5f5f5' }}>
           <Content>
-            <Card style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', marginBottom: 24 }}>
-              <Title level={3} style={{ marginBottom: 16 }}>
-                {consultantName} için Diyet Planı
-              </Title>
-              
-              <Descriptions title="Danışan Bilgileri" bordered>
-                <Descriptions.Item label="Günlük Kalori İhtiyacı" span={3}>
-                  <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
-                    <FireOutlined style={{ marginRight: 8 }} />
-                    {dailyCalories} kcal
-                  </Text>
-                </Descriptions.Item>
-              </Descriptions>
-              
-              <Tabs defaultActiveKey="1" style={{ marginTop: 24 }}>
-                <TabPane tab="Diyet Planı Oluştur" key="1">
-                  <div style={{ marginTop: 16 }}>
-                    <Title level={4}>Seçilen Yemekler</Title>
-                    
-                    <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <div>
-                        {/* Bu alanı kaldırarak öğün seçim dropdown'unu kaldırıyoruz */}
+            {verifying ? (
+              // Yükleme durumu
+              renderLoading()
+            ) : !hasSelectedConsultant ? (
+              // Danışan seçili değil
+              renderConsultantWarning()
+            ) : (
+              // Danışan seçili, normal içerik göster
+              <Card style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', marginBottom: 24 }}>
+                <Title level={3} style={{ marginBottom: 16 }}>
+                  {consultantName} için Diyet Planı
+                </Title>
+                
+                <Descriptions title="Danışan Bilgileri" bordered>
+                  <Descriptions.Item label="Günlük Kalori İhtiyacı" span={3}>
+                    <Text strong style={{ fontSize: 18, color: '#1890ff' }}>
+                      <FireOutlined style={{ marginRight: 8 }} />
+                      {dailyCalories} kcal
+                    </Text>
+                  </Descriptions.Item>
+                </Descriptions>
+                
+                <Tabs defaultActiveKey="1" style={{ marginTop: 24 }}>
+                  <TabPane tab="Diyet Planı Oluştur" key="1">
+                    <div style={{ marginTop: 16 }}>
+                      <Title level={4}>Seçilen Yemekler</Title>
+                      
+                      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                          {/* Bu alanı kaldırarak öğün seçim dropdown'unu kaldırıyoruz */}
+                        </div>
+                        
+                        <div>
+                          <Progress
+                            type="circle"
+                            percent={caloriePercentage}
+                            status={caloriePercentage > 100 ? 'exception' : 'normal'}
+                            format={() => `${totalCalories}/${calorieTarget}`}
+                            width={80}
+                            style={{ marginRight: 16 }}
+                          />
+                          
+                          <Button 
+                            type="primary" 
+                            onClick={handleSaveDietPlan}
+                            disabled={selectedMeals.length === 0}
+                            style={{ marginRight: 8 }}
+                            loading={syncing}
+                          >
+                            Diyet Planını Kaydet
+                          </Button>
+                          
+                          {consultantEmail && (
+                            <Button
+                              type="primary"
+                              style={{ background: '#52c41a', borderColor: '#52c41a', marginRight: 8 }}
+                              icon={<MailOutlined />}
+                              onClick={() => {
+                                // Şu anki seçili yemekleri kullanarak diyet planı oluştur
+                                const emailPlan = {
+                                  danisan_id: consultantId,
+                                  danisan_adi: consultantName,
+                                  danisan_email: consultantEmail,
+                                  gunluk_kalori: dailyCalories,
+                                  toplam_plan_kalorisi: selectedMeals.reduce((sum, meal) => sum + meal.calories, 0),
+                                  kahvalti: selectedMeals.filter(m => m.assignedMealType === 'Kahvaltı')
+                                    .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
+                                  ogle_yemegi: selectedMeals.filter(m => m.assignedMealType === 'Öğle Yemeği')
+                                    .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
+                                  aksam_yemegi: selectedMeals.filter(m => m.assignedMealType === 'Akşam Yemeği')
+                                    .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
+                                  ara_ogun: selectedMeals.filter(m => m.assignedMealType === 'Ara Öğün')
+                                    .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
+                                  olusturma_tarihi: new Date().toLocaleDateString('tr-TR', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })
+                                };
+                                handleSendEmail(emailPlan);
+                              }}
+                              disabled={selectedMeals.length === 0}
+                            >
+                              Diyet Planını E-posta Olarak Gönder
+                            </Button>
+                          )}
+                        </div>
                       </div>
                       
-                      <div>
-                        <Progress
-                          type="circle"
-                          percent={caloriePercentage}
-                          status={caloriePercentage > 100 ? 'exception' : 'normal'}
-                          format={() => `${totalCalories}/${calorieTarget}`}
-                          width={80}
-                          style={{ marginRight: 16 }}
-                        />
-                        
+                      <Table
+                        columns={selectedMealsColumns}
+                        dataSource={selectedMeals}
+                        rowKey="id"
+                        pagination={false}
+                        locale={{ emptyText: 'Henüz yemek seçilmedi' }}
+                        summary={() => (
+                          <Table.Summary>
+                            <Table.Summary.Row>
+                              <Table.Summary.Cell index={0} colSpan={3} align="right">
+                                <Text strong>Toplam Kalori:</Text>
+                              </Table.Summary.Cell>
+                              <Table.Summary.Cell index={1} align="center">
+                                <Text strong>{totalCalories} kcal</Text>
+                              </Table.Summary.Cell>
+                              <Table.Summary.Cell index={2} />
+                            </Table.Summary.Row>
+                          </Table.Summary>
+                        )}
+                      />
+                    </div>
+                    
+                    <Card 
+                      title={<Title level={4} style={{ margin: 0 }}>Tüm Yemekler</Title>}
+                      style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', marginTop: 24 }} 
+                      extra={<Text type="secondary">Seçmek istediğiniz yemeğin yanındaki "Ekle" butonuna tıklayın</Text>}
+                    >
+                      {loading ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                          <Spin size="large" />
+                          <div style={{ marginTop: 16 }}>Yemekler yükleniyor...</div>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
+                            <Input.Search 
+                              placeholder="Yemek adı veya öğün ara..." 
+                              allowClear
+                              value={searchText}
+                              onChange={(e) => setSearchText(e.target.value)}
+                              onSearch={setSearchText}
+                              style={{ width: 300 }}
+                            />
+                            <div style={{ marginLeft: 16 }}>
+                              <Text type="secondary">
+                                Toplam {filteredMeals.length} yemek listeleniyor
+                                {searchText && ` "${searchText}" araması için`}
+                              </Text>
+                            </div>
+                          </div>
+                          <Table 
+                            columns={foodColumns} 
+                            dataSource={filteredMeals} 
+                            rowKey="key"
+                            pagination={{ 
+                              pageSize: 10,
+                              showSizeChanger: true, 
+                              pageSizeOptions: ['5', '10', '20', '50'],
+                              showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} yemek`
+                            }}
+                            bordered
+                            style={{ marginTop: 16 }}
+                          />
+                        </>
+                      )}
+                    </Card>
+                  </TabPane>
+                  
+                  <TabPane tab="Kaydedilmiş Planlar" key="2">
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+                        <Title level={4} style={{ margin: 0 }}>Kaydedilen Diyet Planları</Title>
                         <Button 
                           type="primary" 
-                          onClick={handleSaveDietPlan}
-                          disabled={selectedMeals.length === 0}
-                          style={{ marginRight: 8 }}
-                          loading={syncing}
+                          icon={<HistoryOutlined />} 
+                          onClick={loadAllSavedPlans} 
+                          loading={loadingSavedPlans}
                         >
-                          Diyet Planını Kaydet
+                          Planları Yenile
                         </Button>
-                        
-                        {consultantEmail && (
-                          <Button
-                            type="primary"
-                            style={{ background: '#52c41a', borderColor: '#52c41a', marginRight: 8 }}
-                            icon={<MailOutlined />}
-                            onClick={() => {
-                              // Şu anki seçili yemekleri kullanarak diyet planı oluştur
-                              const emailPlan = {
-                                danisan_id: consultantId,
-                                danisan_adi: consultantName,
-                                danisan_email: consultantEmail,
-                                gunluk_kalori: dailyCalories,
-                                toplam_plan_kalorisi: selectedMeals.reduce((sum, meal) => sum + meal.calories, 0),
-                                kahvalti: selectedMeals.filter(m => m.assignedMealType === 'Kahvaltı')
-                                  .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
-                                ogle_yemegi: selectedMeals.filter(m => m.assignedMealType === 'Öğle Yemeği')
-                                  .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
-                                aksam_yemegi: selectedMeals.filter(m => m.assignedMealType === 'Akşam Yemeği')
-                                  .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
-                                ara_ogun: selectedMeals.filter(m => m.assignedMealType === 'Ara Öğün')
-                                  .map(m => `${m.name} (${m.calories} kcal)`).join(', ') || 'Belirtilmemiş',
-                                olusturma_tarihi: new Date().toLocaleDateString('tr-TR', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })
-                              };
-                              handleSendEmail(emailPlan);
-                            }}
-                            disabled={selectedMeals.length === 0}
-                          >
-                            Diyet Planını E-posta Olarak Gönder
-                          </Button>
-                        )}
                       </div>
-                    </div>
-                    
-                    <Table
-                      columns={selectedMealsColumns}
-                      dataSource={selectedMeals}
-                      rowKey="id"
-                      pagination={false}
-                      locale={{ emptyText: 'Henüz yemek seçilmedi' }}
-                      summary={() => (
-                        <Table.Summary>
-                          <Table.Summary.Row>
-                            <Table.Summary.Cell index={0} colSpan={3} align="right">
-                              <Text strong>Toplam Kalori:</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={1} align="center">
-                              <Text strong>{totalCalories} kcal</Text>
-                            </Table.Summary.Cell>
-                            <Table.Summary.Cell index={2} />
-                          </Table.Summary.Row>
-                        </Table.Summary>
-                      )}
-                    />
-                  </div>
-                  
-                  <Card 
-                    title={<Title level={4} style={{ margin: 0 }}>Tüm Yemekler</Title>}
-                    style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: 'none', marginTop: 24 }} 
-                    extra={<Text type="secondary">Seçmek istediğiniz yemeğin yanındaki "Ekle" butonuna tıklayın</Text>}
-                  >
-                    {loading ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                        <Spin size="large" />
-                        <div style={{ marginTop: 16 }}>Yemekler yükleniyor...</div>
-                      </div>
-                    ) : (
-                      <>
-                        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center' }}>
-                          <Input.Search 
-                            placeholder="Yemek adı veya öğün ara..." 
-                            allowClear
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            onSearch={setSearchText}
-                            style={{ width: 300 }}
-                          />
-                          <div style={{ marginLeft: 16 }}>
-                            <Text type="secondary">
-                              Toplam {filteredMeals.length} yemek listeleniyor
-                              {searchText && ` "${searchText}" araması için`}
-                            </Text>
-                          </div>
+                      
+                      {loadingSavedPlans ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                          <Spin size="large" />
+                          <div style={{ marginTop: 16 }}>Diyet planları yükleniyor...</div>
                         </div>
-                        <Table 
-                          columns={foodColumns} 
-                          dataSource={filteredMeals} 
-                          rowKey="key"
-                          pagination={{ 
-                            pageSize: 10,
-                            showSizeChanger: true, 
-                            pageSizeOptions: ['5', '10', '20', '50'],
-                            showTotal: (total, range) => `${range[0]}-${range[1]} / ${total} yemek`
-                          }}
-                          bordered
+                      ) : (
+                        <Table
+                          columns={savedPlansColumns}
+                          dataSource={savedPlans}
+                          rowKey={(record) => record.olusturma_tarihi}
+                          pagination={false}
+                          locale={{ emptyText: 'Henüz kaydedilmiş diyet planı bulunmuyor' }}
                           style={{ marginTop: 16 }}
                         />
-                      </>
-                    )}
-                  </Card>
-                </TabPane>
-                
-                <TabPane tab="Kaydedilmiş Planlar" key="2">
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                      <Title level={4} style={{ margin: 0 }}>Kaydedilen Diyet Planları</Title>
-                      <Button 
-                        type="primary" 
-                        icon={<HistoryOutlined />} 
-                        onClick={loadAllSavedPlans} 
-                        loading={loadingSavedPlans}
-                      >
-                        Planları Yenile
-                      </Button>
+                      )}
                     </div>
-                    
-                    {loadingSavedPlans ? (
-                      <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                        <Spin size="large" />
-                        <div style={{ marginTop: 16 }}>Diyet planları yükleniyor...</div>
-                      </div>
-                    ) : (
-                      <Table
-                        columns={savedPlansColumns}
-                        dataSource={savedPlans}
-                        rowKey={(record) => record.olusturma_tarihi}
-                        pagination={false}
-                        locale={{ emptyText: 'Henüz kaydedilmiş diyet planı bulunmuyor' }}
-                        style={{ marginTop: 16 }}
-                      />
-                    )}
-                  </div>
-                </TabPane>
-              </Tabs>
-            </Card>
+                  </TabPane>
+                </Tabs>
+              </Card>
+            )}
           </Content>
         </Layout>
       </Layout>
@@ -1272,26 +1196,6 @@ ${araOgun}
         {currentPlan && (
           <div>
             <Descriptions title="Plan Bilgileri" bordered style={{ marginBottom: 20 }}>
-              <Descriptions.Item label="Oluşturma Tarihi" span={3}>
-                {(() => {
-                  try {
-                    // Eğer tarih zaten formatlanmış ise (örn: "26 Temmuz 2023, 15:30"), doğrudan göster
-                    if (typeof currentPlan.olusturma_tarihi === 'string' && currentPlan.olusturma_tarihi.includes(':')) {
-                      return currentPlan.olusturma_tarihi;
-                    }
-                    // Aksi takdirde, tarihi formatla
-                    return new Date(currentPlan.olusturma_tarihi).toLocaleDateString('tr-TR', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    });
-                  } catch (e) {
-                    return currentPlan.olusturma_tarihi; // Hata durumunda orijinal değeri göster
-                  }
-                })()}
-              </Descriptions.Item>
               <Descriptions.Item label="Günlük Kalori İhtiyacı">
                 <Tag color="blue">{currentPlan.gunluk_kalori} kcal</Tag>
               </Descriptions.Item>

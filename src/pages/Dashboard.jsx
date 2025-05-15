@@ -400,8 +400,8 @@ export default function Dashboard() {
                   email: record.email,
                   dailyCalories: record.dailyCalories
                 });
-                // Diyet planı sayfasına yönlendir
-                navigate(`/diet-plan?id=${idx}&name=${record.name}&email=${record.email}&dailyCalories=${record.dailyCalories}`);
+                // Diyet planı sayfasına yönlendir (URL parametresi kullanmadan)
+                navigate(`/diet-plan`);
               }} 
               type="primary" 
               size="small"
